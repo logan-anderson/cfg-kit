@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx config.ts",
     "build": "tsc",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "config:build": "config-as-code build",
+    "config:dev": "config-as-code dev"
   },
   "keywords": [],
   "author": "",

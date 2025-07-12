@@ -46,3 +46,8 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+
+# Config-as-code CLI
+.config-as-code-temp/
+config.server.js
+config.client.js

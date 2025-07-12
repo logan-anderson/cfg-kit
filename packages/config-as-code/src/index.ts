@@ -42,6 +42,11 @@ export function defineConfig<
     const { env } = config;
     const { server, client, clientPrefix, runtimeEnv, emptyStringAsUndefined = false } = env;
 
+    // For build mode, skip validation if environment variable is set
+    if (process.env.CONFIG_AS_CODE_BUILD_MODE === 'true') {
+        return config as any;
+    }
+
     // Validate that all client variables have the correct prefix
     for (const key of Object.keys(client)) {
         if (!key.startsWith(clientPrefix)) {

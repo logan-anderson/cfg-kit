@@ -19,6 +19,7 @@ The `config-as-code` library provides a type-safe way to define and validate env
 - 🔑 **Client Prefix Enforcement** - Enforces naming conventions for client-side variables
 - 🔧 **Flexible Configuration** - Support for custom runtime environments and empty string handling
 - 📦 **Tree Shakeable** - Built with modern bundling in mind
+- ⚡ **TypeScript CLI** - Fully typed CLI written in TypeScript with esbuild compilation
 
 ### Basic Usage
 
@@ -53,6 +54,65 @@ console.log(env.PUBLIC_CLERK_PUBLISHABLE_KEY); // string (validated)
 - **`clientPrefix`** - Required prefix for client-side variables (enforced at compile-time and runtime)
 - **`runtimeEnv`** - Object containing environment variables (usually `process.env`)
 - **`emptyStringAsUndefined`** - Treat empty strings as undefined (allows default values to work)
+
+## CLI Usage
+
+The library includes a CLI tool for building separate server and client configuration files:
+
+### Build Command
+
+```bash
+# Build config files from config.ts (default)
+config-as-code build
+
+# Build from a specific config file
+config-as-code build my-config.ts
+
+# Build with custom output directory
+config-as-code build --output ./dist
+```
+
+This generates:
+- `config.server.js` - Contains only server-side environment variables
+- `config.client.js` - Contains only client-side environment variables
+
+### Dev Command
+
+```bash
+# Watch config.ts for changes and rebuild
+config-as-code dev
+
+# Watch a specific config file
+config-as-code dev my-config.ts
+
+# Watch with custom output directory
+config-as-code dev --output ./dist
+```
+
+### Package Scripts
+
+Add these scripts to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "config:build": "config-as-code build",
+    "config:dev": "config-as-code dev"
+  }
+}
+```
+
+### Usage in Applications
+
+```javascript
+// In your server code
+const serverConfig = require('./config.server.js');
+console.log(serverConfig.DATABASE_URL); // Server-only variable
+
+// In your client code
+const clientConfig = require('./config.client.js');
+console.log(clientConfig.PUBLIC_CLERK_PUBLISHABLE_KEY); // Client-only variable
+```
 
 ## Getting Started
 
