@@ -16,6 +16,11 @@
       "cache": false,
       "persistent": true
     },
+    "watch": {
+      "inputs": ["packages/**"],
+      "cache": false,
+      "persistent": true
+    },
     "clean": {
       "cache": false
     }

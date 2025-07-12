@@ -18,7 +18,10 @@ export type InferEnvConfig<
     TClientPrefix extends string,
     TServer extends Record<string, z.ZodType>,
     TClient extends Record<string, z.ZodType>
-> = z.infer<z.ZodObject<TServer>> & z.infer<z.ZodObject<TClient>>;
+> = {
+    server: z.infer<z.ZodObject<TServer>>;
+    client: z.infer<z.ZodObject<TClient>>;
+};
 
 // Helper type to enforce client prefix
 export type EnforceClientPrefix<
@@ -88,8 +91,8 @@ export function defineConfig<
         const validatedClient = clientSchema.parse(clientEnvValues);
 
         return {
-            ...validatedServer,
-            ...validatedClient,
+            server: validatedServer,
+            client: validatedClient,
         } as InferEnvConfig<TClientPrefix, TServer, TClient>;
     } catch (error) {
         if (error instanceof z.ZodError) {

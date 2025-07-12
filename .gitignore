@@ -51,3 +51,5 @@ coverage/
 .config-as-code-temp/
 config.server.js
 config.client.js
+config.server.d.ts
+config.client.d.ts

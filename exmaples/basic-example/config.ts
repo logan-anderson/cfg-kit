@@ -1,9 +1,11 @@
 import { defineConfig } from "config-as-code";
 import { z } from "zod";
+import dotenv from "dotenv";
 
-export const env = defineConfig({
+dotenv.config();
+
+export default defineConfig({
     env: {
-
         server: {
             DATABASE_URL: z.string().url(),
             OPEN_AI_API_KEY: z.string().min(1),
@@ -42,7 +44,3 @@ export const env = defineConfig({
     }
 });
 
-// Example usage - this will show that the env object is properly typed
-console.log("Database URL:", env.DATABASE_URL);
-console.log("OpenAI API Key:", env.OPEN_AI_API_KEY);
-console.log("Clerk Publishable Key:", env.PUBLIC_CLERK_PUBLISHABLE_KEY);
