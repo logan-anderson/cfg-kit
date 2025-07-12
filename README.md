@@ -7,6 +7,53 @@ This is a monorepo using pnpm workspaces and Turbo for build orchestration.
 - `packages/config-as-code/` - Main library package
 - `examples/basic-example/` - Example usage of the library
 
+## Features
+
+The `config-as-code` library provides a type-safe way to define and validate environment variables using Zod schemas.
+
+### Key Features
+
+- 🔒 **Type Safety** - Full TypeScript support with proper type inference
+- 🔍 **Runtime Validation** - Zod schema validation for all environment variables
+- 🎯 **Client/Server Separation** - Separate validation for client and server-side variables
+- 🔑 **Client Prefix Enforcement** - Enforces naming conventions for client-side variables
+- 🔧 **Flexible Configuration** - Support for custom runtime environments and empty string handling
+- 📦 **Tree Shakeable** - Built with modern bundling in mind
+
+### Basic Usage
+
+```typescript
+import { defineConfig } from "config-as-code";
+import { z } from "zod";
+
+export const env = defineConfig({
+  env: {
+    server: {
+      DATABASE_URL: z.string().url(),
+      OPEN_AI_API_KEY: z.string().min(1),
+    },
+    clientPrefix: "PUBLIC_",
+    client: {
+      PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
+    },
+    runtimeEnv: process.env,
+    emptyStringAsUndefined: true,
+  }
+});
+
+// The env object is now fully typed and validated
+console.log(env.DATABASE_URL); // string (validated URL)
+console.log(env.PUBLIC_CLERK_PUBLISHABLE_KEY); // string (validated)
+```
+
+### Configuration Options
+
+- **`server`** - Server-side environment variables schema
+- **`client`** - Client-side environment variables schema  
+- **`clientPrefix`** - Required prefix for client-side variables (enforced at compile-time and runtime)
+- **`runtimeEnv`** - Object containing environment variables (usually `process.env`)
+- **`emptyStringAsUndefined`** - Treat empty strings as undefined (allows default values to work)
+
 ## Getting Started
 
 ### Prerequisites
