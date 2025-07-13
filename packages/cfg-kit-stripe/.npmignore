@@ -1,0 +1,10 @@
+# Development files
+src/
+tsconfig.json
+tsup.config.ts
+.turbo/
+node_modules/
+pnpm-lock.yaml
+
+# Keep only the built files
+!dist/ 

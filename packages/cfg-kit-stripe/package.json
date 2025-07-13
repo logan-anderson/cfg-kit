@@ -1,0 +1,46 @@
+{
+  "name": "cfg-kit-stripe",
+  "version": "0.0.1",
+  "description": "Stripe plugin for cfg-kit - Define Stripe products, subscriptions, and meters as configuration",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "watch": "tsup --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "cfg-kit",
+    "stripe", 
+    "payments",
+    "configuration",
+    "typescript",
+    "plugin",
+    "products",
+    "subscriptions",
+    "meters"
+  ],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.8.1",
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "peerDependencies": {
+    "stripe": "^17.0.0",
+    "cfg-kit": "^0.0.1"
+  }
+} 

@@ -1,4 +1,5 @@
 import config from './config';
+import { stripeConfig, syncStripeConfig } from './stripe-config';
 
 async function main() {
     console.log('🚀 Testing config with plugins...\n');
@@ -27,6 +28,40 @@ async function main() {
         console.log('📋 Available configuration keys:');
         console.log('Server keys:', Object.keys(resolvedConfig.server));
         console.log('Client keys:', Object.keys(resolvedConfig.client));
+
+        // Demonstrate cfg-kit-stripe plugin
+        console.log('\n💳 Stripe Configuration (cfg-kit-stripe):');
+        console.log('Products defined:', stripeConfig.products.length);
+        console.log('Coupons defined:', stripeConfig.coupons.length);
+        console.log('Billing meters defined:', stripeConfig.billing_meters.length);
+
+        console.log('\n📦 Product examples:');
+        stripeConfig.products.forEach((product, index) => {
+            console.log(`${index + 1}. ${product.name} - ${product.description}`);
+            if (product.default_price_data) {
+                const price = product.default_price_data.unit_amount! / 100;
+                console.log(`   Price: $${price}/${product.default_price_data.recurring?.interval || 'one-time'}`);
+            }
+        });
+
+        console.log('\n🎫 Coupon examples:');
+        stripeConfig.coupons.forEach((coupon, index) => {
+            const discount = coupon.percent_off ? `${coupon.percent_off}% off` : `$${coupon.amount_off! / 100} off`;
+            console.log(`${index + 1}. ${coupon.id} - ${discount} (${coupon.duration})`);
+        });
+
+        console.log('\n📊 Billing meter examples:');
+        stripeConfig.billing_meters.forEach((meter, index) => {
+            console.log(`${index + 1}. ${meter.display_name} - tracking "${meter.event_name}" events`);
+        });
+
+        // Optionally sync to Stripe if API key is available
+        console.log('\n🔄 Stripe Sync Test:');
+        try {
+            await syncStripeConfig();
+        } catch (error) {
+            console.log('   Sync skipped or failed (this is normal without valid Stripe credentials)');
+        }
 
     } catch (error) {
         console.error('❌ Configuration error:', error);
