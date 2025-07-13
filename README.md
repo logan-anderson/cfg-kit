@@ -1,97 +1,193 @@
-# cfg-kit Monorepo
+# cfg-kit
 
-This is a monorepo using pnpm workspaces and Turbo for build orchestration.
-
-## Structure
-
-- `packages/cfg-kit/` - Main library package
-- `examples/basic-example/` - Example usage of the library
+A TypeScript configuration toolkit with automatic type inference and plugin support.
 
 ## Features
 
-The `cfg-kit` library provides a type-safe way to define and validate environment variables using Zod schemas.
+- 🔒 **Type Safety** - Full TypeScript support with automatic type inference
+- 🔍 **Validation** - Zod schema validation for environment variables
+- ⚡ **Async Support** - Define configuration values asynchronously
+- 🎯 **Client/Server Separation** - Separate builds for client and server-side configs
+- 🔧 **Plugin System** - Extensible with plugins (Stripe, etc.)
 
-### Key Features
+## Quick Start
 
-- 🔒 **Type Safety** - Full TypeScript support with proper type inference
-- 🔍 **Runtime Validation** - Zod schema validation for all environment variables
-- 🎯 **Client/Server Separation** - Separate validation for client and server-side variables
-- 🔑 **Client Prefix Enforcement** - Enforces naming conventions for client-side variables
-- 🔧 **Flexible Configuration** - Support for custom runtime environments and empty string handling
-- 📦 **Tree Shakeable** - Built with modern bundling in mind
-- ⚡ **TypeScript CLI** - Fully typed CLI written in TypeScript with esbuild compilation
+### Installation
+
+```bash
+pnpm add cfg-kit
+# Optional: Add plugins
+pnpm add cfg-kit-stripe
+```
 
 ### Basic Usage
 
 ```typescript
-import { defineConfig } from "cfg-kit";
+import { configBuilder } from "cfg-kit";
 import { z } from "zod";
 
-export const env = defineConfig({
-  env: {
+export default configBuilder
+  .buildEnv({
     server: {
       DATABASE_URL: z.string().url(),
-      OPEN_AI_API_KEY: z.string().min(1),
+      API_KEY: z.string().min(1),
+    },
+    client: {
+      PUBLIC_APP_URL: z.string().url(),
     },
     clientPrefix: "PUBLIC_",
-    client: {
-      PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
-    },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,
-  }
-});
-
-// The env object is now fully typed and validated
-console.log(env.DATABASE_URL); // string (validated URL)
-console.log(env.PUBLIC_CLERK_PUBLISHABLE_KEY); // string (validated)
+  })
+  .defineConfig(({ serverField, clientField }) => ({
+    server: {
+      dbUrl: serverField(z.string().url(), process.env.DATABASE_URL!),
+      apiKey: serverField(z.string(), process.env.API_KEY!),
+    },
+    client: {
+      appVersion: clientField(z.string(), "1.0.0"),
+      buildNumber: clientField(z.number(), 123),
+    }
+  }));
 ```
 
-### Configuration Options
+**Somewhere else in the app:**
 
-- **`server`** - Server-side environment variables schema
-- **`client`** - Client-side environment variables schema  
-- **`clientPrefix`** - Required prefix for client-side variables (enforced at compile-time and runtime)
-- **`runtimeEnv`** - Object containing environment variables (usually `process.env`)
-- **`emptyStringAsUndefined`** - Treat empty strings as undefined (allows default values to work)
+```typescript
+// Server-side code
+import { dbUrl, apiKey } from './config.server';
 
-## CLI Usage
+console.log(dbUrl); // Fully typed and validated URL
+console.log(apiKey); // Fully typed and validated string
 
-The library includes a CLI tool for building separate server and client configuration files:
+// Client-side code  
+import { appVersion, buildNumber } from './config.client';
 
-### Build Command
+console.log(appVersion); // "1.0.0"
+console.log(buildNumber); // 123
+```
+
+### With Plugins
+
+```typescript
+import { configBuilder } from "cfg-kit";
+import { StripePlugin, defineStripeProduct } from "cfg-kit-stripe";
+
+export default configBuilder
+  .addPlugins([
+    new StripePlugin({
+      products: [
+        defineStripeProduct({
+          stableId: 'starterPlan',
+          name: 'Starter Plan',
+          default_price_data: {
+            currency: 'usd',
+            unit_amount: 999,
+            recurring: { interval: 'month' },
+          },
+        }),
+      ],
+    }, {
+      apiKey: process.env.STRIPE_SECRET_KEY!,
+    })
+  ])
+  .buildEnv({
+    server: {
+      STRIPE_SECRET_KEY: z.string().min(1),
+    },
+    client: {
+      PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1),
+    },
+    clientPrefix: "PUBLIC_",
+    runtimeEnv: process.env,
+  })
+  .defineConfig(({ serverField, clientField }) => ({
+     server: {
+       stripeApiKey: serverField(z.string(), process.env.STRIPE_SECRET_KEY!),
+     },
+     client: {
+       stripePublishableKey: clientField(z.string(), process.env.PUBLIC_STRIPE_PUBLISHABLE_KEY!),
+     }
+   }));
+```
+
+**Somewhere else in the app:**
+
+```typescript
+// Server-side code
+import { stripeApiKey } from './config.server';
+
+const stripe = new Stripe(stripeApiKey);
+
+// Client-side code
+import { starterPlan } from './config.client';
+
+// use starterPlan (its a string containing the id)
+```
+
+### Async Configuration
+
+```typescript
+const getAsyncValue = async (stableId: string) => {
+  // Fetch from database, API, etc.
+  return "computed-value";
+};
+
+export default configBuilder
+  .buildEnv({...})
+  .defineConfig(({ serverField, clientField }) => ({
+    server: {
+      computedValue: serverField(
+        z.string(),
+        async ({ stableId, env }) => {
+          return getAsyncValue(stableId);
+        }
+      ),
+    },
+  }));
+```
+
+**Somewhere else in the app:**
+
+```typescript
+// Server-side code
+import { computedValue } from './config.server';
+
+console.log(computedValue); // "computed-value" (result of async function)
+```
+
+## CLI Commands
+
+### Build Configuration
 
 ```bash
-# Build config files from config.ts (default)
+# Build separate server and client config files
 cfg-kit build
 
-# Build from a specific config file
+# Build from specific file
 cfg-kit build my-config.ts
 
-# Build with custom output directory
+# Custom output directory
 cfg-kit build --output ./dist
 ```
 
-This generates:
-- `config.server.js` - Contains only server-side environment variables
-- `config.client.js` - Contains only client-side environment variables
+Generates:
+- `config.server.js` - Server-side configuration
+- `config.client.js` - Client-side configuration
 
-### Dev Command
+### Development Mode
 
 ```bash
-# Watch config.ts for changes and rebuild
+# Watch for changes and rebuild
 cfg-kit dev
 
-# Watch a specific config file
+# Watch specific file
 cfg-kit dev my-config.ts
-
-# Watch with custom output directory
-cfg-kit dev --output ./dist
 ```
 
 ### Package Scripts
 
-Add these scripts to your `package.json`:
+Add to your `package.json`:
 
 ```json
 {
@@ -102,84 +198,40 @@ Add these scripts to your `package.json`:
 }
 ```
 
-### Usage in Applications
+## Usage in Applications
 
 ```javascript
-// In your server code
+// Server code
 const serverConfig = require('./config.server.js');
-console.log(serverConfig.DATABASE_URL); // Server-only variable
+console.log(serverConfig.DATABASE_URL);
 
-// In your client code
+// Client code
 const clientConfig = require('./config.client.js');
-console.log(clientConfig.PUBLIC_CLERK_PUBLISHABLE_KEY); // Client-only variable
+console.log(clientConfig.PUBLIC_APP_URL);
 ```
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js (version 18 or higher)
-- pnpm (version 8 or higher)
-
-### Installation
+## Development
 
 ```bash
-# Install dependencies for all packages
+# Install dependencies
 pnpm install
-```
-
-### Development
-
-```bash
-# Start development mode for all packages
-pnpm dev
 
 # Build all packages
 pnpm build
 
-# Run tests for all packages
-pnpm test
+# Run in development
+pnpm dev
 
-# Lint all packages
-pnpm lint
-
-# Clean build artifacts
-pnpm clean
-```
-
-### Package-specific commands
-
-```bash
-# Work on a specific package
+# Work on specific package
 pnpm --filter cfg-kit dev
-pnpm --filter basic-example dev
-
-# Build a specific package
-pnpm --filter cfg-kit build
 ```
 
-## Adding New Packages
+## Packages
 
-1. Create a new directory under `packages/` or `examples/`
-2. Add a `package.json` with the appropriate scripts
-3. The package will be automatically included in the workspace
+- `packages/cfg-kit/` - Main library
+- `packages/cfg-kit-stripe/` - Stripe plugin
+- `examples/basic-example/` - Usage examples
 
-## Scripts
+## License
 
-- `pnpm dev` - Start development mode with hot reloading
-- `pnpm build` - Build all packages
-- `pnpm test` - Run tests across all packages
-- `pnpm lint` - Lint all packages
-- `pnpm clean` - Clean build artifacts
-
-## Workspace Dependencies
-
-Use `workspace:*` to reference other packages in the monorepo:
-
-```json
-{
-  "dependencies": {
-    "cfg-kit": "workspace:*"
-  }
-}
-``` 
+ISC 
