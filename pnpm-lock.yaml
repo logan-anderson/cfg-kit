@@ -19,7 +19,7 @@ importers:
     dependencies:
       cfg-kit:
         specifier: workspace:*
-        version: link:../../packages/config-as-code
+        version: link:../../packages/cfg-kit
       cfg-kit-stripe:
         specifier: workspace:*
         version: link:../../packages/cfg-kit-stripe
@@ -40,14 +40,17 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
-  packages/cfg-kit-stripe:
+  packages/cfg-kit:
     dependencies:
-      cfg-kit:
-        specifier: ^0.0.1
-        version: 0.0.1(zod@3.25.76)
-      stripe:
-        specifier: ^17.0.0
-        version: 17.7.0
+      chokidar:
+        specifier: ^4.0.1
+        version: 4.0.3
+      commander:
+        specifier: ^12.1.0
+        version: 12.1.0
+      esbuild:
+        specifier: ^0.25.6
+        version: 0.25.6
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -62,17 +65,14 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
-  packages/config-as-code:
+  packages/cfg-kit-stripe:
     dependencies:
-      chokidar:
-        specifier: ^4.0.1
-        version: 4.0.3
-      commander:
-        specifier: ^12.1.0
-        version: 12.1.0
-      esbuild:
-        specifier: ^0.25.6
-        version: 0.25.6
+      cfg-kit:
+        specifier: ^0.0.1
+        version: 0.0.1(zod@3.25.76)
+      stripe:
+        specifier: ^17.0.0
+        version: 17.7.0
       zod:
         specifier: ^3.24.1
         version: 3.25.76

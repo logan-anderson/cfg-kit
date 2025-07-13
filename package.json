@@ -1,5 +1,5 @@
 {
-  "name": "config-as-code-monorepo",
+  "name": "cfg-kit-monorepo",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",

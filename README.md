@@ -1,15 +1,15 @@
-# Config as Code Monorepo
+# cfg-kit Monorepo
 
 This is a monorepo using pnpm workspaces and Turbo for build orchestration.
 
 ## Structure
 
-- `packages/config-as-code/` - Main library package
+- `packages/cfg-kit/` - Main library package
 - `examples/basic-example/` - Example usage of the library
 
 ## Features
 
-The `config-as-code` library provides a type-safe way to define and validate environment variables using Zod schemas.
+The `cfg-kit` library provides a type-safe way to define and validate environment variables using Zod schemas.
 
 ### Key Features
 
@@ -24,7 +24,7 @@ The `config-as-code` library provides a type-safe way to define and validate env
 ### Basic Usage
 
 ```typescript
-import { defineConfig } from "config-as-code";
+import { defineConfig } from "cfg-kit";
 import { z } from "zod";
 
 export const env = defineConfig({
@@ -63,13 +63,13 @@ The library includes a CLI tool for building separate server and client configur
 
 ```bash
 # Build config files from config.ts (default)
-config-as-code build
+cfg-kit build
 
 # Build from a specific config file
-config-as-code build my-config.ts
+cfg-kit build my-config.ts
 
 # Build with custom output directory
-config-as-code build --output ./dist
+cfg-kit build --output ./dist
 ```
 
 This generates:
@@ -80,13 +80,13 @@ This generates:
 
 ```bash
 # Watch config.ts for changes and rebuild
-config-as-code dev
+cfg-kit dev
 
 # Watch a specific config file
-config-as-code dev my-config.ts
+cfg-kit dev my-config.ts
 
 # Watch with custom output directory
-config-as-code dev --output ./dist
+cfg-kit dev --output ./dist
 ```
 
 ### Package Scripts
@@ -96,8 +96,8 @@ Add these scripts to your `package.json`:
 ```json
 {
   "scripts": {
-    "config:build": "config-as-code build",
-    "config:dev": "config-as-code dev"
+    "config:build": "cfg-kit build",
+    "config:dev": "cfg-kit dev"
   }
 }
 ```
@@ -151,11 +151,11 @@ pnpm clean
 
 ```bash
 # Work on a specific package
-pnpm --filter config-as-code dev
+pnpm --filter cfg-kit dev
 pnpm --filter basic-example dev
 
 # Build a specific package
-pnpm --filter config-as-code build
+pnpm --filter cfg-kit build
 ```
 
 ## Adding New Packages
@@ -179,7 +179,7 @@ Use `workspace:*` to reference other packages in the monorepo:
 ```json
 {
   "dependencies": {
-    "config-as-code": "workspace:*"
+    "cfg-kit": "workspace:*"
   }
 }
 ``` 

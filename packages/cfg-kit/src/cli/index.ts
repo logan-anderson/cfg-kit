@@ -14,8 +14,8 @@ const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 const program = new Command();
 
 program
-    .name('config-as-code')
-    .description('CLI for config-as-code library')
+    .name('cfg-kit')
+    .description('CLI for cfg-kit library')
     .version(packageJson.version);
 
 program

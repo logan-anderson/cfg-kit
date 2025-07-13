@@ -17,7 +17,7 @@ export async function buildConfig(configPath: string, { output }: BuildOptions):
   }
 
   // Create temporary files for server and client configs
-  const tempDir = path.join(process.cwd(), '.config-as-code-temp');
+  const tempDir = path.join(process.cwd(), '.cfg-kit-temp');
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
   }
@@ -72,7 +72,7 @@ async function compileConfig(configPath: string, tempDir: string): Promise<strin
     target: 'node16',
     outfile: compiledPath,
     format: 'cjs',
-    external: ['zod', 'config-as-code'],
+    external: ['zod', 'cfg-kit'],
     logLevel: 'silent',
   });
 
