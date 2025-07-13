@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
 import { build } from 'esbuild';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface BuildOptions {
   output: string;
@@ -26,16 +26,8 @@ export async function buildConfig(configPath: string, { output }: BuildOptions):
     // First, compile the original config file to JavaScript if it's TypeScript
     const compiledConfigPath = await compileConfig(resolvedConfigPath, tempDir);
 
-    const rawconfigImport = require(compiledConfigPath)
-
-    // Handle both sync and async configs
-    let rawConfig = rawconfigImport.default
-    if (typeof rawConfig === 'function' || (rawConfig && typeof rawConfig.then === 'function')) {
-      rawConfig = await rawConfig
-    }
-
-    const serverConfig = rawConfig.server
-    const clientConfig = rawConfig.client
+    // Get resolved config values (not raw config structure)
+    const { serverConfig, clientConfig } = await getResolvedConfig(compiledConfigPath);
 
     // Extract type information from the original config
     const typeInfo = await extractTypeInfo(compiledConfigPath, tempDir);
@@ -47,7 +39,6 @@ export async function buildConfig(configPath: string, { output }: BuildOptions):
     // Generate client config file
     const clientCode = generateClientConfig(clientConfig);
     fs.writeFileSync(path.join(output, 'config.client.js'), clientCode);
-
 
     // Generate TypeScript declaration files
     const serverDts = generateServerDts(typeInfo);
@@ -88,6 +79,32 @@ async function compileConfig(configPath: string, tempDir: string): Promise<strin
 
   return compiledPath;
 
+}
+
+async function getResolvedConfig(configPath: string): Promise<{ serverConfig: Record<string, any>, clientConfig: Record<string, any> }> {
+  try {
+    // Don't set build mode - we want resolved values
+    delete process.env.CONFIG_AS_CODE_BUILD_MODE;
+
+    // Clear the require cache to ensure fresh import
+    delete require.cache[path.resolve(configPath)];
+
+    // Import the compiled config and get resolved values
+    const compiledConfig = require(path.resolve(configPath));
+    let resolvedConfig = compiledConfig.default;
+
+    // Handle async config
+    if (typeof resolvedConfig === 'function' || (resolvedConfig && typeof resolvedConfig.then === 'function')) {
+      resolvedConfig = await resolvedConfig;
+    }
+
+    return {
+      serverConfig: resolvedConfig.server || {},
+      clientConfig: resolvedConfig.client || {},
+    };
+  } catch (error) {
+    throw new Error(`Failed to resolve config values: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 interface TypeInfo {
