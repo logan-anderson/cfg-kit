@@ -6,8 +6,9 @@ export type ConfigField<T = any, EnvType = any> = {
     value: T | ((args: { stableId: string, env: EnvType }) => T | Promise<T>);
 };
 
-// Helper type to infer env type from zod schema
-type InferEnvType<T extends Record<string, z.ZodType>> = z.infer<z.ZodObject<T>>;
+type InferConfigObject<T extends Record<string, ConfigField>> = {
+    [K in keyof T]: T[K] extends ConfigField<infer U, any> ? U : never;
+};
 
 // Base config type
 export type Config = {
@@ -22,14 +23,55 @@ export type Config = {
     };
 };
 
-// Infer resolved values from ConfigField
-type InferConfigField<T extends ConfigField> = T['validation'] extends z.ZodType<infer U> ? U : never;
-
-// Infer all fields from a config object
-type InferConfigObject<T extends Record<string, ConfigField>> = {
-    [K in keyof T]: InferConfigField<T[K]>;
+// Plugin type that defines the shape of a plugin configuration
+export type PluginConfig = {
+    server?: Record<string, ConfigField>;
+    client?: Record<string, ConfigField>;
+    env?: {
+        server: Record<string, z.ZodType>;
+        client: Record<string, z.ZodType>;
+    };
 };
 
+// Base Plugin class that all plugins must extend
+export abstract class Plugin {
+    abstract build(): PluginConfig | Promise<PluginConfig>;
+}
+
+// Utility type to merge multiple plugin configs
+type MergePluginConfigs<T extends PluginConfig[]> = T extends readonly [infer First, ...infer Rest]
+    ? First extends PluginConfig
+    ? Rest extends PluginConfig[]
+    ? {
+        server: (First['server'] extends Record<string, ConfigField> ? First['server'] : {}) &
+        (MergePluginConfigs<Rest>['server'] extends Record<string, ConfigField> ? MergePluginConfigs<Rest>['server'] : {});
+        client: (First['client'] extends Record<string, ConfigField> ? First['client'] : {}) &
+        (MergePluginConfigs<Rest>['client'] extends Record<string, ConfigField> ? MergePluginConfigs<Rest>['client'] : {});
+        env: {
+            server: (First['env'] extends { server: Record<string, z.ZodType> } ? First['env']['server'] : {}) &
+            (MergePluginConfigs<Rest>['env'] extends { server: Record<string, z.ZodType> } ? MergePluginConfigs<Rest>['env']['server'] : {});
+            client: (First['env'] extends { client: Record<string, z.ZodType> } ? First['env']['client'] : {}) &
+            (MergePluginConfigs<Rest>['env'] extends { client: Record<string, z.ZodType> } ? MergePluginConfigs<Rest>['env']['client'] : {});
+        };
+    }
+    : First
+    : {}
+    : {
+        server: {};
+        client: {};
+        env: { server: {}; client: {} };
+    };
+
+// Utility type to infer env types from plugin configs
+type InferPluginEnvTypes<T extends PluginConfig[]> = {
+    server: MergePluginConfigs<T>['env']['server'];
+    client: MergePluginConfigs<T>['env']['client'];
+};
+
+// Type to help extract zod schema types
+type InferEnvType<T extends Record<string, z.ZodType>> = z.infer<z.ZodObject<T>>;
+
+// Type to infer the final merged config type
 export type InferConfig<T extends Config> = {
     server: T['server'] extends Record<string, ConfigField>
     ? InferConfigObject<T['server']>
@@ -42,24 +84,6 @@ export type InferConfig<T extends Config> = {
     ? z.infer<z.ZodObject<T['env']['client']>>
     : {};
 };
-
-// Legacy type for backward compatibility
-export type InferEnvConfig<
-    TClientPrefix extends string,
-    TServer extends Record<string, z.ZodType>,
-    TClient extends Record<string, z.ZodType>
-> = {
-    server: z.infer<z.ZodObject<TServer>>;
-    client: z.infer<z.ZodObject<TClient>>;
-};
-
-// Helper type to enforce client prefix
-export type EnforceClientPrefix<
-    TClientPrefix extends string,
-    TClient extends Record<string, z.ZodType>
-> = {
-        [K in keyof TClient]: K extends `${TClientPrefix}${string}` ? TClient[K] : never;
-    };
 
 // Helper function to create typed field builders
 export function createFieldHelpers<
@@ -79,8 +103,8 @@ export function createFieldHelpers<
     };
 }
 
-// Clean builder API - define env once, use everywhere!
-class ConfigBuilder<
+// Plugin Builder class - has the same API as ConfigBuilder but for plugins
+class PluginBuilder<
     TServerEnv extends Record<string, z.ZodType> = {},
     TClientEnv extends Record<string, z.ZodType> = {},
     TClientPrefix extends string = string
@@ -103,9 +127,8 @@ class ConfigBuilder<
         clientPrefix: NewTClientPrefix;
         runtimeEnv: Record<string, string | undefined>;
         emptyStringAsUndefined?: boolean;
-    }): ConfigBuilder<NewTServerEnv, NewTClientEnv, NewTClientPrefix> {
-        // Create a new builder instance with the env schemas and config
-        const newBuilder = new ConfigBuilder<NewTServerEnv, NewTClientEnv, NewTClientPrefix>();
+    }): PluginBuilder<NewTServerEnv, NewTClientEnv, NewTClientPrefix> {
+        const newBuilder = new PluginBuilder<NewTServerEnv, NewTClientEnv, NewTClientPrefix>();
         newBuilder.serverEnvSchemas = config.server;
         newBuilder.clientEnvSchemas = config.client;
         newBuilder.envConfig = {
@@ -113,6 +136,106 @@ class ConfigBuilder<
             runtimeEnv: config.runtimeEnv,
             emptyStringAsUndefined: config.emptyStringAsUndefined,
         };
+        return newBuilder;
+    }
+
+    serverField<T>(
+        validation: z.ZodType<T>,
+        value: T | ((args: { stableId: string, env: InferEnvType<TServerEnv> }) => T | Promise<T>)
+    ): ConfigField<T, InferEnvType<TServerEnv>> {
+        return { validation, value };
+    }
+
+    clientField<T>(
+        validation: z.ZodType<T>,
+        value: T | ((args: { stableId: string, env: InferEnvType<TClientEnv> }) => T | Promise<T>)
+    ): ConfigField<T, InferEnvType<TClientEnv>> {
+        return { validation, value };
+    }
+
+    defineConfig(
+        configOrCallback?:
+            | {
+                server?: Record<string, ConfigField<any, InferEnvType<TServerEnv>>>;
+                client?: Record<string, ConfigField<any, InferEnvType<TClientEnv>>>;
+            }
+            | ((helpers: {
+                serverField: <T>(validation: z.ZodType<T>, value: T | ((args: { stableId: string, env: InferEnvType<TServerEnv> }) => T | Promise<T>)) => ConfigField<T, InferEnvType<TServerEnv>>;
+                clientField: <T>(validation: z.ZodType<T>, value: T | ((args: { stableId: string, env: InferEnvType<TClientEnv> }) => T | Promise<T>)) => ConfigField<T, InferEnvType<TClientEnv>>;
+            }) => {
+                server?: Record<string, ConfigField<any, InferEnvType<TServerEnv>>>;
+                client?: Record<string, ConfigField<any, InferEnvType<TClientEnv>>>;
+            })
+    ): PluginConfig {
+        if (!this.envConfig) {
+            throw new Error('buildEnv() must be called before defineConfig() in a plugin');
+        }
+
+        // Handle both callback and direct object patterns
+        const config = typeof configOrCallback === 'function'
+            ? configOrCallback({ serverField: this.serverField.bind(this), clientField: this.clientField.bind(this) })
+            : configOrCallback || {};
+
+        // Return the plugin config structure
+        return {
+            ...config,
+            env: {
+                server: this.serverEnvSchemas,
+                client: this.clientEnvSchemas,
+            }
+        };
+    }
+}
+
+// Export plugin builder instance
+export const pluginBuilder = new PluginBuilder();
+
+// Clean builder API - define env once, use everywhere!
+class ConfigBuilder<
+    TServerEnv extends Record<string, z.ZodType> = {},
+    TClientEnv extends Record<string, z.ZodType> = {},
+    TClientPrefix extends string = string,
+    TPlugins extends Plugin[] = []
+> {
+    private serverEnvSchemas: TServerEnv = {} as TServerEnv;
+    private clientEnvSchemas: TClientEnv = {} as TClientEnv;
+    private envConfig: {
+        clientPrefix: TClientPrefix;
+        runtimeEnv: Record<string, string | undefined>;
+        emptyStringAsUndefined?: boolean;
+    } | null = null;
+    private plugins: TPlugins = [] as any;
+
+    addPlugins<NewTPlugins extends Plugin[]>(plugins: NewTPlugins): ConfigBuilder<TServerEnv, TClientEnv, TClientPrefix, NewTPlugins> {
+        const newBuilder = new ConfigBuilder<TServerEnv, TClientEnv, TClientPrefix, NewTPlugins>();
+        newBuilder.serverEnvSchemas = this.serverEnvSchemas;
+        newBuilder.clientEnvSchemas = this.clientEnvSchemas;
+        newBuilder.envConfig = this.envConfig;
+        newBuilder.plugins = plugins as any;
+        return newBuilder;
+    }
+
+    buildEnv<
+        NewTServerEnv extends Record<string, z.ZodType>,
+        NewTClientEnv extends Record<string, z.ZodType>,
+        NewTClientPrefix extends string
+    >(config: {
+        server: NewTServerEnv;
+        client: NewTClientEnv;
+        clientPrefix: NewTClientPrefix;
+        runtimeEnv: Record<string, string | undefined>;
+        emptyStringAsUndefined?: boolean;
+    }): ConfigBuilder<NewTServerEnv, NewTClientEnv, NewTClientPrefix, TPlugins> {
+        // Create a new builder instance with the env schemas and config
+        const newBuilder = new ConfigBuilder<NewTServerEnv, NewTClientEnv, NewTClientPrefix, TPlugins>();
+        newBuilder.serverEnvSchemas = config.server;
+        newBuilder.clientEnvSchemas = config.client;
+        newBuilder.envConfig = {
+            clientPrefix: config.clientPrefix,
+            runtimeEnv: config.runtimeEnv,
+            emptyStringAsUndefined: config.emptyStringAsUndefined,
+        };
+        newBuilder.plugins = this.plugins;
         return newBuilder;
     }
 
@@ -153,17 +276,49 @@ class ConfigBuilder<
             ? configOrCallback({ serverField: this.serverField.bind(this), clientField: this.clientField.bind(this) })
             : configOrCallback || {};
 
+        // Build plugin configurations
+        const pluginConfigs: PluginConfig[] = [];
+        for (const plugin of this.plugins) {
+            const pluginConfig = await plugin.build();
+            pluginConfigs.push(pluginConfig);
+        }
+
+        // Merge plugin configurations
+        const mergedPluginConfig = this.mergePluginConfigs(pluginConfigs);
+
+        // Merge main config with plugin configs
+        const mergedServerEnv = { ...this.serverEnvSchemas, ...mergedPluginConfig.env?.server };
+        const mergedClientEnv = { ...this.clientEnvSchemas, ...mergedPluginConfig.env?.client };
+        const mergedServerConfig = { ...config.server, ...mergedPluginConfig.server };
+        const mergedClientConfig = { ...config.client, ...mergedPluginConfig.client };
+
         // Use the stored env config and merge with schemas
         const fullConfig = {
-            ...config,
+            server: mergedServerConfig,
+            client: mergedClientConfig,
             env: {
                 ...this.envConfig,
-                server: this.serverEnvSchemas,
-                client: this.clientEnvSchemas,
+                server: mergedServerEnv,
+                client: mergedClientEnv,
             }
         };
 
         return defineConfig(fullConfig);
+    }
+
+    private mergePluginConfigs(configs: PluginConfig[]): PluginConfig {
+        return configs.reduce((merged, config) => ({
+            server: { ...merged.server, ...config.server },
+            client: { ...merged.client, ...config.client },
+            env: {
+                server: { ...merged.env?.server, ...config.env?.server },
+                client: { ...merged.env?.client, ...config.env?.client },
+            }
+        }), {
+            server: {},
+            client: {},
+            env: { server: {}, client: {} }
+        });
     }
 }
 
@@ -288,25 +443,73 @@ async function processEnvConfig(env: {
         clientEnvKeys.map(key => [key, processedRuntimeEnv[key]])
     );
 
-    try {
-        const validatedServer = serverSchema.parse(serverEnvValues);
-        const validatedClient = clientSchema.parse(clientEnvValues);
+    let validatedServerEnv: any;
+    let validatedClientEnv: any;
 
-        return {
-            server: validatedServer,
-            client: validatedClient,
-        };
+    // Validate server environment
+    try {
+        validatedServerEnv = serverSchema.parse(serverEnvValues);
     } catch (error) {
         if (error instanceof z.ZodError) {
             const errorMessages = error.errors.map(err => {
                 const path = err.path.join('.');
                 return `${path}: ${err.message}`;
-            });
-
-            throw new Error(
-                `Environment validation failed:\n${errorMessages.join('\n')}`
-            );
+            }).join('\n');
+            throw new Error(`Server environment validation failed:\n${errorMessages}`);
         }
         throw error;
+    }
+
+    // Validate client environment
+    try {
+        validatedClientEnv = clientSchema.parse(clientEnvValues);
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            const errorMessages = error.errors.map(err => {
+                const path = err.path.join('.');
+                return `${path}: ${err.message}`;
+            }).join('\n');
+            throw new Error(`Client environment validation failed:\n${errorMessages}`);
+        }
+        throw error;
+    }
+
+    return {
+        server: validatedServerEnv,
+        client: validatedClientEnv,
+    };
+}
+
+// Type inference helper for zod types (for build CLI)
+function inferZodType(zodType: z.ZodType): string {
+    const zodTypeName = (zodType as any)?._def?.typeName;
+
+    switch (zodTypeName) {
+        case 'ZodString':
+            return 'string';
+        case 'ZodNumber':
+            return 'number';
+        case 'ZodBoolean':
+            return 'boolean';
+        case 'ZodArray':
+            const elementType = inferZodType((zodType as any)._def.type);
+            return `${elementType}[]`;
+        case 'ZodObject':
+            const shape = (zodType as any)._def.shape();
+            const properties = Object.entries(shape)
+                .map(([key, value]) => `${key}: ${inferZodType(value as z.ZodType)}`)
+                .join('; ');
+            return `{ ${properties} }`;
+        case 'ZodUnion':
+            const options = (zodType as any)._def.options;
+            return options.map((option: z.ZodType) => inferZodType(option)).join(' | ');
+        case 'ZodOptional':
+            const innerType = inferZodType((zodType as any)._def.innerType);
+            return `${innerType} | undefined`;
+        case 'ZodNullable':
+            const nullableInner = inferZodType((zodType as any)._def.innerType);
+            return `${nullableInner} | null`;
+        default:
+            return 'any';
     }
 }
