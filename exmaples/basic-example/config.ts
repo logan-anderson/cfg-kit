@@ -4,6 +4,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+const getStripeProductId = async (stableId: string) => {
+    return 'example-product-id'
+}
+
 export default defineConfig({
     env: {
         server: {
@@ -41,6 +45,30 @@ export default defineConfig({
          * explicitly specify this option as true.
          */
         emptyStringAsUndefined: true,
+    },
+    // New server API with validation and value functions
+    server: {
+        stripeProductId: {
+            validation: z.string().min(1),
+            value: async (stableId: string) => {
+                return getStripeProductId(stableId)
+            }
+        }
+    },
+    // New client API with validation and value functions
+    client: {
+        appVersion: {
+            validation: z.string().min(1),
+            value: "1.0.0" // Can be a static value or a function
+        },
+        buildNumber: {
+            validation: z.number().int().positive(),
+            value: async (stableId: string) => {
+                // This could fetch from CI/CD environment or package.json
+                console.log(`Resolving ${stableId}`)
+                return 123
+            }
+        }
     }
 });
 

@@ -28,7 +28,12 @@ export async function buildConfig(configPath: string, { output }: BuildOptions):
 
     const rawconfigImport = require(compiledConfigPath)
 
-    const rawConfig = rawconfigImport.default
+    // Handle both sync and async configs
+    let rawConfig = rawconfigImport.default
+    if (typeof rawConfig === 'function' || (rawConfig && typeof rawConfig.then === 'function')) {
+      rawConfig = await rawConfig
+    }
+
     const serverConfig = rawConfig.server
     const clientConfig = rawConfig.client
 
@@ -100,27 +105,49 @@ async function extractTypeInfo(configPath: string, tempDir: string): Promise<Typ
 
     // Import the compiled config and extract schema info
     const compiledConfig = require(path.resolve(configPath));
+    let config = compiledConfig.default;
 
-    const config = compiledConfig.env || compiledConfig.default?.env || compiledConfig.default;
-    const envConfig = config?.env || config;
-
-    if (!envConfig) {
-      throw new Error('No env configuration found');
+    // Handle async config
+    if (typeof config === 'function' || (config && typeof config.then === 'function')) {
+      config = await config;
     }
 
     const serverTypes: Record<string, string> = {};
     const clientTypes: Record<string, string> = {};
 
-    // Extract server types
-    for (const key of Object.keys(envConfig.server || {})) {
-      const zodType = envConfig.server[key];
-      serverTypes[key] = inferZodType(zodType);
+    // Extract types from new server API
+    if (config.server) {
+      for (const [key, field] of Object.entries(config.server)) {
+        if (field && typeof field === 'object' && 'validation' in field) {
+          serverTypes[key] = inferZodType((field as any).validation);
+        }
+      }
     }
 
-    // Extract client types
-    for (const key of Object.keys(envConfig.client || {})) {
-      const zodType = envConfig.client[key];
-      clientTypes[key] = inferZodType(zodType);
+    // Extract types from new client API
+    if (config.client) {
+      for (const [key, field] of Object.entries(config.client)) {
+        if (field && typeof field === 'object' && 'validation' in field) {
+          clientTypes[key] = inferZodType((field as any).validation);
+        }
+      }
+    }
+
+    // Extract types from legacy env API
+    if (config.env) {
+      const envConfig = config.env;
+
+      // Extract server types from env
+      for (const key of Object.keys(envConfig.server || {})) {
+        const zodType = envConfig.server[key];
+        serverTypes[key] = inferZodType(zodType);
+      }
+
+      // Extract client types from env
+      for (const key of Object.keys(envConfig.client || {})) {
+        const zodType = envConfig.client[key];
+        clientTypes[key] = inferZodType(zodType);
+      }
     }
 
     // Reset build mode
