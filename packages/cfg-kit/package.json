@@ -22,7 +22,7 @@
   },
   "keywords": ["config", "configuration", "typescript", "type-inference", "build", "toolkit", "schema"],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "packageManager": "pnpm@10.8.1",
   "devDependencies": {
     "@types/node": "^20.17.10",

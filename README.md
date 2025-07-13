@@ -234,4 +234,4 @@ pnpm --filter cfg-kit dev
 
 ## License
 
-ISC 
+MIT 
