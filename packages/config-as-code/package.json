@@ -1,11 +1,11 @@
 {
-  "name": "config-as-code",
+  "name": "cfg-kit",
   "version": "0.0.1",
-  "description": "Config as Code",
+  "description": "A TypeScript configuration toolkit with automatic type inference",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "config-as-code": "./dist/cli/index.js"
+    "cfg-kit": "./dist/cli/index.js"
   },
   "exports": {
     ".": {
@@ -20,7 +20,7 @@
     "watch": "tsup --watch",
     "clean": "rm -rf dist"
   },
-  "keywords": [],
+  "keywords": ["config", "configuration", "typescript", "type-inference", "build", "toolkit", "schema"],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.8.1",
