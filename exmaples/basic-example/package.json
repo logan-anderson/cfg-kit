@@ -7,7 +7,7 @@
     "dev": "tsx config.ts",
     "app": "tsx app.ts",
     "stripe": "tsx stripe-config.ts",
-    "build": "tsc",
+    "build": "tsc && cfg-kit build",
     "clean": "rm -rf dist",
     "config:build": "cfg-kit build",
     "config:dev": "cfg-kit dev"
