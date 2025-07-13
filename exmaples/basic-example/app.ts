@@ -12,8 +12,12 @@ async function main() {
         console.log('- OpenAI API Key:', serverConfig.OPEN_AI_API_KEY ? '✓ Present' : '✗ Missing');
         console.log('- Some Asyncple Value Example:', serverConfig.someAsyncpleValueExample);
 
-        // Test plugin configuration
-        console.log('- Stripe Config from Plugin:', serverConfig.starterplan || 'Not available (env vars not set)');
+        // Test Stripe plugin configuration
+        console.log('- Stripe Starter Plan:', serverConfig.starterplan || 'Not available (env vars not set)');
+
+        // Test PostHog plugin configuration
+        console.log('- PostHog New Dashboard Flag:', serverConfig.newdashboard || 'Not available (env vars not set)');
+        console.log('- PostHog Beta Features Flag:', serverConfig.betafeatures || 'Not available (env vars not set)');
 
         console.log('\n📱 Client Configuration:');
         console.log('- Clerk Publishable Key:', clientConfig.PUBLIC_CLERK_PUBLISHABLE_KEY ? '✓ Present' : '✗ Missing');
@@ -40,7 +44,8 @@ async function main() {
                 console.log('\n💡 Tip: Make sure to set the required environment variables:');
                 console.log('Required server vars: DATABASE_URL, OPEN_AI_API_KEY');
                 console.log('Required client vars: PUBLIC_CLERK_PUBLISHABLE_KEY');
-                console.log('Plugin vars (optional): STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, PUBLIC_STRIPE_PUBLISHABLE_KEY');
+                console.log('Stripe plugin vars (optional): STRIPE_SECRET_KEY, STRIPE_API_VERSION');
+                console.log('PostHog plugin vars (optional): POSTHOG_API_KEY, POSTHOG_PROJECT_ID, POSTHOG_HOST');
             }
         }
     }

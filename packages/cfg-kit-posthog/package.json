@@ -1,0 +1,46 @@
+{
+  "name": "cfg-kit-posthog",
+  "version": "0.0.1",
+  "description": "PostHog plugin for cfg-kit - Define PostHog feature flags as configuration",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "watch": "tsup --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "cfg-kit",
+    "posthog", 
+    "analytics",
+    "feature-flags",
+    "configuration",
+    "typescript",
+    "plugin"
+  ],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@10.8.1",
+  "dependencies": {
+    "zod": "^3.24.1",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "@types/node-fetch": "^2.6.11",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "posthog-node": "^4.0.0",
+    "cfg-kit": "^0.0.1"
+  }
+} 

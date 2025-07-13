@@ -24,6 +24,7 @@
   "dependencies": {
     "cfg-kit": "workspace:*",
     "cfg-kit-stripe": "workspace:*",
+    "cfg-kit-posthog": "workspace:*",
     "dotenv": "^17.2.0",
     "zod": "^3.24.1"
   }

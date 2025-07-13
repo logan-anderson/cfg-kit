@@ -1,5 +1,6 @@
 import { configBuilder } from "cfg-kit";
 import { defineStripeCoupon, defineStripeProduct, StripePlugin } from "cfg-kit-stripe";
+import { definePostHogConfig, definePostHogFeatureFlag, PostHogPlugin } from "cfg-kit-posthog";
 import { z } from "zod";
 import dotenv from "dotenv";
 
@@ -99,6 +100,86 @@ export const stripeConfig = {
 
 } as const
 
+// Example PostHog configuration using cfg-kit-posthog
+export const postHogConfig = definePostHogConfig({
+    featureFlags: [
+        definePostHogFeatureFlag({
+            key: 'new-dashboard',
+            name: 'New Dashboard',
+            description: 'Enable the redesigned dashboard experience',
+            active: true,
+            filters: {
+                groups: [
+                    {
+                        properties: [],
+                        rollout_percentage: 100
+                    }
+                ]
+            },
+            tags: ['ui', 'dashboard']
+        }),
+        definePostHogFeatureFlag({
+            key: 'beta-features',
+            name: 'Beta Features',
+            description: 'Enable beta features for testing',
+            active: true,
+            filters: {
+                groups: [
+                    {
+                        properties: [
+                            {
+                                key: 'email',
+                                operator: 'icontains',
+                                value: '@company.com',
+                                type: 'person'
+                            }
+                        ],
+                        rollout_percentage: 50
+                    }
+                ]
+            },
+            tags: ['beta', 'testing']
+        }),
+        definePostHogFeatureFlag({
+            key: 'premium-features',
+            name: 'Premium Features',
+            description: 'Enable premium features for paid users',
+            active: true,
+            filters: {
+                groups: [
+                    {
+                        properties: [
+                            {
+                                key: 'subscription_tier',
+                                operator: 'exact',
+                                value: 'premium',
+                                type: 'person'
+                            }
+                        ],
+                        rollout_percentage: 100
+                    }
+                ]
+            },
+            tags: ['premium', 'features']
+        }),
+        definePostHogFeatureFlag({
+            key: 'maintenance-mode',
+            name: 'Maintenance Mode',
+            description: 'Enable maintenance mode banner',
+            active: false,
+            filters: {
+                groups: [
+                    {
+                        properties: [],
+                        rollout_percentage: 0
+                    }
+                ]
+            },
+            tags: ['maintenance', 'system']
+        })
+    ]
+})
+
 const getSomeAsyncValue = async (stableId: string) => {
     // wait 2 seconds
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -112,6 +193,11 @@ export default configBuilder.addPlugins([
         coupons: [...stripeConfig.coupons],
     }, {
         apiKey: process.env.STRIPE_SECRET_KEY ?? '',
+    }),
+    new PostHogPlugin(postHogConfig, {
+        apiKey: process.env.POSTHOG_API_KEY ?? 'placeholder-api-key',
+        projectId: process.env.POSTHOG_PROJECT_ID ?? 'placeholder-project-id',
+        host: process.env.POSTHOG_HOST,
     })
 ]).buildEnv({
     server: {
