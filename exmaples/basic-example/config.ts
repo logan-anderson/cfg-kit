@@ -186,54 +186,55 @@ const getSomeAsyncValue = async (stableId: string) => {
     return 'example-product-id'
 }
 
-export default configBuilder.addPlugins([
-    new StripePlugin({
-        products: [...stripeConfig.products],
-        prices: [...stripeConfig.prices],
-        coupons: [...stripeConfig.coupons],
-    }, {
-        apiKey: process.env.STRIPE_SECRET_KEY ?? '',
-    }),
-    new PostHogPlugin(postHogConfig, {
-        apiKey: process.env.POSTHOG_API_KEY ?? 'placeholder-api-key',
-        projectId: process.env.POSTHOG_PROJECT_ID ?? 'placeholder-project-id',
-        host: process.env.POSTHOG_HOST,
-    })
-]).buildEnv({
-    server: {
-        DATABASE_URL: z.string().url(),
-        OPEN_AI_API_KEY: z.string().min(1),
-    },
-    client: {
-        PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
-    },
-    clientPrefix: "PUBLIC_",
-    runtimeEnv: process.env,
-    emptyStringAsUndefined: true,
-}).defineConfig(({ serverField, clientField }) => ({
-    server: {
-        someOtherServerConfig: serverField(
-            z.string().min(1),
-            "asdf"
-        ),
-        someAsyncpleValueExample: serverField(
-            z.string().min(1),
-            async ({ stableId, env }) => {
-                return getSomeAsyncValue(stableId)
-            }
-        )
-    },
-    client: {
-        appVersion: clientField(
-            z.string().min(1),
-            "1.0.0"
-        ),
-        buildNumber: clientField(
-            z.number().int().positive(),
-            async ({ stableId, env }) => {
-                return 123
-            }
-        )
-    }
-}))
+export default configBuilder
+    .addPlugins([
+        new StripePlugin({
+            products: [...stripeConfig.products],
+            prices: [...stripeConfig.prices],
+            coupons: [...stripeConfig.coupons],
+        }, {
+            apiKey: process.env.STRIPE_SECRET_KEY ?? '',
+        }),
+        new PostHogPlugin(postHogConfig, {
+            apiKey: process.env.POSTHOG_API_KEY ?? 'placeholder-api-key',
+            projectId: process.env.POSTHOG_PROJECT_ID ?? 'placeholder-project-id',
+            host: process.env.POSTHOG_HOST,
+        })
+    ]).buildEnv({
+        server: {
+            DATABASE_URL: z.string().url(),
+            OPEN_AI_API_KEY: z.string().min(1),
+        },
+        client: {
+            PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
+        },
+        clientPrefix: "PUBLIC_",
+        runtimeEnv: process.env,
+        emptyStringAsUndefined: true,
+    }).defineConfig(({ serverField, clientField }) => ({
+        server: {
+            someOtherServerConfig: serverField(
+                z.string().min(1),
+                "asdf"
+            ),
+            someAsyncpleValueExample: serverField(
+                z.string().min(1),
+                async ({ stableId, env }) => {
+                    return getSomeAsyncValue(stableId)
+                }
+            )
+        },
+        client: {
+            appVersion: clientField(
+                z.string().min(1),
+                "1.0.0"
+            ),
+            buildNumber: clientField(
+                z.number().int().positive(),
+                async ({ stableId, env }) => {
+                    return 123
+                }
+            )
+        }
+    }))
 
