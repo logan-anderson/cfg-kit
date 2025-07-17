@@ -1,6 +1,6 @@
 {
   "name": "cfg-kit-stripe",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Stripe plugin for cfg-kit - Define Stripe products, subscriptions, and meters as configuration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -41,6 +41,6 @@
   },
   "peerDependencies": {
     "stripe": "^17.0.0",
-    "cfg-kit": "^0.0.1"
+    "cfg-kit": "^0.0.2"
   }
 } 
