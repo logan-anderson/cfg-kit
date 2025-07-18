@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 
 // Core ConfigField type
 export type ConfigField<T = any, EnvType = any> = {
@@ -303,7 +303,7 @@ class ConfigBuilder<
             }
         };
 
-        return defineConfig(fullConfig);
+        return transformConfig(fullConfig);
     }
 
     private mergePluginConfigs(configs: PluginConfig[]): PluginConfig {
@@ -324,8 +324,7 @@ class ConfigBuilder<
 
 export const configBuilder = new ConfigBuilder();
 
-// Simple defineConfig function
-export async function defineConfig<T extends Config>(config: T): Promise<InferConfig<T>> {
+async function transformConfig<T extends Config>(config: T): Promise<InferConfig<T>> {
     // For build mode, skip validation if environment variable is set
     if (process.env.CONFIG_AS_CODE_BUILD_MODE === 'true') {
         return config as any;

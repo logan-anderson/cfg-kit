@@ -92,40 +92,76 @@ export class StripePlugin extends Plugin {
             runtimeEnv: {},
             emptyStringAsUndefined: true,
         }).defineConfig(({ serverField }) => {
-            let productsAsFields: Record<string, ConfigField<string, { STRIPE_SECRET_KEY: string; STRIPE_API_VERSION?: string | undefined; }>> = {}
+            let productsAsFields: Record<string, ConfigField<{ stableId: string; name: string; priceId: string; productId: string; description?: string | undefined; active?: boolean | undefined; metadata?: Record<string, string> | undefined; }, { STRIPE_SECRET_KEY: string; STRIPE_API_VERSION?: string | undefined; }>> = {}
             for (const product of this.config.products) {
-                productsAsFields[toValidJsVarName(product.stableId)] = serverField(z.string(), async ({ env }) => {
+                productsAsFields[toValidJsVarName(product.stableId)] = serverField(z.object({
+                    stableId: z.string(),
+                    name: z.string(),
+                    description: z.string().optional(),
+                    active: z.boolean().default(true),
+                    metadata: z.record(z.string()).default({}),
+                    priceId: z.string(),
+                    productId: z.string(),
+                }), async ({ stableId }) => {
                     const stripeProduct = await this.stripe.products.search({
-                        query: `metadata['stableId']:"${product.stableId}"`,
+                        query: `metadata['stableId']:"${stableId}"`,
                     })
                     if (stripeProduct.data.length > 0) {
                         const realStripeProduct = stripeProduct.data[0]
                         // any values different?
                         if (realStripeProduct.name !== product.name || realStripeProduct.description !== product.description || realStripeProduct.active !== product.active || realStripeProduct.metadata !== product.metadata) {
-                            const updatedProduct = await this.stripe.products.update(realStripeProduct.id, {
+                            await this.stripe.products.update(realStripeProduct.id, {
                                 name: product.name,
                                 description: product.description,
                                 active: product.active,
                                 metadata: {
                                     ...product.metadata,
-                                    stableId: product.stableId,
+                                    stableId: stableId,
                                 },
                             })
-                            return updatedProduct.id
                         }
-                        return stripeProduct.data[0].id
+                        if (!realStripeProduct.default_price) {
+                            const newPrice = await this.stripe.prices.create({
+                                product: realStripeProduct.id,
+                                unit_amount: product.default_price_data?.unit_amount,
+                                currency: product.default_price_data?.currency || 'usd',
+                                recurring: product.default_price_data?.recurring,
+                            })
+                            await this.stripe.products.update(realStripeProduct.id, {
+                                default_price: newPrice.id,
+                            })
+                            realStripeProduct.default_price = newPrice.id
+                        }
+                        return {
+                            stableId,
+                            name: realStripeProduct.name,
+                            description: realStripeProduct.description || undefined,
+                            active: realStripeProduct.active,
+                            metadata: realStripeProduct.metadata as Record<string, string> || {},
+                            priceId: realStripeProduct.default_price as string,
+                            productId: realStripeProduct.id,
+                        }
                     }
                     // we don't have a product, so we need to create it
                     const createdProduct = await this.stripe.products.create({
                         name: product.name,
                         description: product.description,
                         active: product.active,
+                        default_price_data: product.default_price_data,
                         metadata: {
                             ...product.metadata,
-                            stableId: product.stableId,
+                            stableId: stableId,
                         },
                     })
-                    return createdProduct.id
+                    return {
+                        stableId,
+                        name: createdProduct.name,
+                        description: createdProduct.description || undefined,
+                        active: createdProduct.active,
+                        metadata: createdProduct.metadata || {},
+                        priceId: createdProduct.default_price as string,
+                        productId: createdProduct.id,
+                    }
                 })
             }
             let pricesAsFields: Record<string, ConfigField<string, { STRIPE_SECRET_KEY: string; STRIPE_API_VERSION?: string | undefined; }>> = {}
@@ -138,7 +174,6 @@ export class StripePlugin extends Plugin {
                         const realStripePrice = stripePrice.data[0]
                         // See if any values are different
                         if (realStripePrice.unit_amount !== price.unit_amount || realStripePrice.unit_amount_decimal !== price.unit_amount_decimal) {
-                            console.log('UPDATEING PRICES IS NOT IMPLEMENTED YET')
                             return realStripePrice.id
                         }
                         return realStripePrice.id
@@ -166,7 +201,6 @@ export class StripePlugin extends Plugin {
                         if (stripeCoupon) {
                             const realStripeCoupon = stripeCoupon
                             if (realStripeCoupon.percent_off !== coupon.percent_off || realStripeCoupon.amount_off !== coupon.amount_off || realStripeCoupon.currency !== coupon.currency || realStripeCoupon.duration !== coupon.duration || realStripeCoupon.duration_in_months !== coupon.duration_in_months || realStripeCoupon.max_redemptions !== coupon.max_redemptions || realStripeCoupon.metadata !== coupon.metadata) {
-                                console.log('UPDATEING COUPONS IS NOT IMPLEMENTED YET')
                                 return realStripeCoupon.id
                             }
                             return realStripeCoupon.id

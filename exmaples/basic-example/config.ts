@@ -50,6 +50,14 @@ export const stripeConfig = {
             name: 'Enterprise Plan',
             description: 'For large organizations with custom needs',
             active: true,
+            default_price_data: {
+                currency: 'usd',
+                unit_amount: 2999, // $29.99
+                recurring: {
+                    interval: 'month',
+                    interval_count: 1,
+                },
+            },
             metadata: {
                 plan_type: 'enterprise',
                 features: 'premium',
@@ -58,44 +66,43 @@ export const stripeConfig = {
             // No default price - we'll create separate prices
         }),
     ],
-
     prices: [],
-
-    coupons: [
-        defineStripeCoupon({
-            stableId: 'welcome-20',
-            id: 'WELCOME20',
-            percent_off: 20,
-            duration: 'once',
-            name: 'Welcome 20% off',
-            metadata: {
-                campaign: 'onboarding',
-            },
-        }),
-        defineStripeCoupon({
-            stableId: 'summer-50',
-            id: 'SUMMER50',
-            percent_off: 50,
-            duration: 'repeating',
-            duration_in_months: 3,
-            max_redemptions: 100,
-            name: 'Summer Sale 50% off',
-            metadata: {
-                campaign: 'summer_2024',
-            },
-        }),
-        defineStripeCoupon({
-            stableId: 'flat-10',
-            id: 'FLAT10',
-            amount_off: 1000, // $10.00 off
-            currency: 'usd',
-            duration: 'forever',
-            name: '$10 off forever',
-            metadata: {
-                campaign: 'loyalty',
-            },
-        }),
-    ],
+    // coupons: [
+    //     defineStripeCoupon({
+    //         stableId: 'welcome-20',
+    //         id: 'WELCOME20',
+    //         percent_off: 20,
+    //         duration: 'once',
+    //         name: 'Welcome 20% off',
+    //         metadata: {
+    //             campaign: 'onboarding',
+    //         },
+    //     }),
+    //     defineStripeCoupon({
+    //         stableId: 'summer-50',
+    //         id: 'SUMMER50',
+    //         percent_off: 50,
+    //         duration: 'repeating',
+    //         duration_in_months: 3,
+    //         max_redemptions: 100,
+    //         name: 'Summer Sale 50% off',
+    //         metadata: {
+    //             campaign: 'summer_2024',
+    //         },
+    //     }),
+    //     defineStripeCoupon({
+    //         stableId: 'flat-10',
+    //         id: 'FLAT10',
+    //         amount_off: 1000, // $10.00 off
+    //         currency: 'usd',
+    //         duration: 'forever',
+    //         name: '$10 off forever',
+    //         metadata: {
+    //             campaign: 'loyalty',
+    //         },
+    //     }),
+    // ],
+    coupons: [],
 
 
 } as const

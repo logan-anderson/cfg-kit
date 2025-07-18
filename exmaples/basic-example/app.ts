@@ -13,7 +13,7 @@ async function main() {
         console.log('- Some Asyncple Value Example:', serverConfig.someAsyncpleValueExample);
 
         // Test Stripe plugin configuration
-        console.log('- Stripe Starter Plan:', serverConfig.starterplan || 'Not available (env vars not set)');
+        console.log('- Stripe Enterprise Plan:', serverConfig.enterpriseplan.productId || 'Not available (env vars not set)');
 
         // Test PostHog plugin configuration
         console.log('- PostHog New Dashboard Flag:', serverConfig.newdashboard || 'Not available (env vars not set)');

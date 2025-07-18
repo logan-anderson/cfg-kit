@@ -11,7 +11,7 @@ export const StripeProductSchema = z.object({
     images: z.array(z.string()).optional(),
     default_price_data: z.object({
         currency: z.string(),
-        unit_amount: z.number().optional(),
+        unit_amount: z.number(),
         recurring: z.object({
             interval: z.enum(['day', 'week', 'month', 'year']),
             interval_count: z.number().optional(),

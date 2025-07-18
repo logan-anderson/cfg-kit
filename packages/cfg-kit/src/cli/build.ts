@@ -183,8 +183,6 @@ function inferZodType(zodSchema: any): string {
     return 'unknown';
   }
 
-  // This is a simplified type inference - in a real implementation,
-  // we'd need to introspect the Zod schema more deeply
   if (zodSchema._def) {
     const typeName = zodSchema._def.typeName;
     switch (typeName) {
@@ -194,12 +192,26 @@ function inferZodType(zodSchema: any): string {
         return 'number';
       case 'ZodBoolean':
         return 'boolean';
+      case 'ZodArray':
+        const elementType = inferZodType(zodSchema._def.type);
+        return `${elementType}[]`;
+      case 'ZodObject':
+        const shape = zodSchema._def.shape();
+        const properties = Object.entries(shape)
+          .map(([key, value]) => `${key}: ${inferZodType(value as any)}`)
+          .join('; ');
+        return `{ ${properties} }`;
+      case 'ZodUnion':
+        const options = zodSchema._def.options;
+        return options.map((option: any) => inferZodType(option)).join(' | ');
       case 'ZodOptional':
-        return inferZodType(zodSchema._def.innerType) + ' | undefined';
+        const innerType = inferZodType(zodSchema._def.innerType);
+        return `${innerType} | undefined`;
+      case 'ZodNullable':
+        const nullableInner = inferZodType(zodSchema._def.innerType);
+        return `${nullableInner} | null`;
       case 'ZodDefault':
         return inferZodType(zodSchema._def.innerType);
-      case 'ZodArray':
-        return inferZodType(zodSchema._def.type) + '[]';
       default:
         return 'unknown';
     }
