@@ -1,6 +1,6 @@
 {
   "name": "cfg-kit-posthog",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "PostHog plugin for cfg-kit - Define PostHog feature flags as configuration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -41,6 +41,6 @@
   },
   "peerDependencies": {
     "posthog-node": "^4.0.0",
-    "cfg-kit": "^0.0.2"
+    "cfg-kit": "^0.0.3"
   }
 } 
