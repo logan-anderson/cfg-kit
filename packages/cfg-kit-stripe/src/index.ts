@@ -120,12 +120,46 @@ export class StripePlugin extends Plugin {
                                 },
                             })
                         }
+
+                        // Check if we need to create or update the default price
+                        let needsNewPrice = false
                         if (!realStripeProduct.default_price) {
+                            needsNewPrice = true
+                        } else if (product.default_price_data) {
+                            // Fetch the existing default price to compare
+                            const existingPrice = await this.stripe.prices.retrieve(realStripeProduct.default_price as string)
+
+                            // Check if any price data has changed
+                            const unitAmountChanged = existingPrice.unit_amount !== product.default_price_data.unit_amount
+                            const currencyChanged = existingPrice.currency !== product.default_price_data.currency
+
+                            // Compare recurring data thoroughly
+                            let recurringChanged = false
+                            const configRecurring = product.default_price_data.recurring
+                            const existingRecurring = existingPrice.recurring
+
+                            if (configRecurring && existingRecurring) {
+                                // Both have recurring, compare all fields
+                                recurringChanged =
+                                    existingRecurring.interval !== configRecurring.interval ||
+                                    existingRecurring.interval_count !== (configRecurring.interval_count || 1)
+                            } else if (configRecurring || existingRecurring) {
+                                // One has recurring, the other doesn't
+                                recurringChanged = true
+                            }
+                            // If both are null/undefined, recurringChanged stays false
+
+                            if (unitAmountChanged || currencyChanged || recurringChanged) {
+                                needsNewPrice = true
+                            }
+                        }
+
+                        if (needsNewPrice && product.default_price_data) {
                             const newPrice = await this.stripe.prices.create({
                                 product: realStripeProduct.id,
-                                unit_amount: product.default_price_data?.unit_amount,
-                                currency: product.default_price_data?.currency || 'usd',
-                                recurring: product.default_price_data?.recurring,
+                                unit_amount: product.default_price_data.unit_amount,
+                                currency: product.default_price_data.currency || 'usd',
+                                recurring: product.default_price_data.recurring,
                             })
                             await this.stripe.products.update(realStripeProduct.id, {
                                 default_price: newPrice.id,
