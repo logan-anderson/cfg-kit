@@ -1,6 +1,6 @@
 {
   "name": "cfg-kit",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A TypeScript configuration toolkit with automatic type inference",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -20,7 +20,15 @@
     "watch": "tsup --watch",
     "clean": "rm -rf dist"
   },
-  "keywords": ["config", "configuration", "typescript", "type-inference", "build", "toolkit", "schema"],
+  "keywords": [
+    "config",
+    "configuration",
+    "typescript",
+    "type-inference",
+    "build",
+    "toolkit",
+    "schema"
+  ],
   "author": "",
   "license": "MIT",
   "packageManager": "pnpm@10.8.1",
