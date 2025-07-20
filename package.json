@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "build": "turbo build",
+    "release": "pnpm build && changeset publish",
     "dev": "turbo dev",
+    "changeset": "changeset",
     "watch": "turbo run watch",
     "test": "turbo test",
     "lint": "turbo lint",
@@ -18,5 +20,8 @@
   "devDependencies": {
     "turbo": "^2.5.0",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@changesets/cli": "^2.29.5"
   }
 }
